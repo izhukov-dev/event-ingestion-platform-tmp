@@ -1,0 +1,46 @@
+initscript {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    dependencies {
+        classpath 'info.solidsoft.gradle.pitest:gradle-pitest-plugin:1.15.0'
+        classpath 'org.pitest:pitest-junit5-plugin:1.2.1'
+    }
+}
+
+gradle.allprojects {
+    afterEvaluate { project ->
+        if (project.plugins.hasPlugin('java')) {
+            project.apply plugin: info.solidsoft.gradle.pitest.PitestPlugin
+
+            project.pitest {
+                junit5PluginVersion = '1.2.1'
+                targetClasses = ['com.contentaggregator.*']
+                targetTests = ['com.contentaggregator.*Test']
+                excludedClasses = [
+                    '*.*Application',
+                    '*.*Config',
+                    '*.*Configuration'
+                ]
+                excludedTestClasses = [
+                    '**.*IT',
+                    '**.*IntegrationTest',
+                    '**.*Base*'
+                ]
+                mutators = ['STRONGER']
+                timeoutFactor = 1.25
+                timeoutConstInMillis = 4000
+                jvmArgs = [
+                    '-XX:+EnableDynamicAgentLoading',
+                    '-XX:TieredStopAtLevel=1',
+                    '-XX:+UseParallelGC'
+                ]
+                useClasspathFile = true
+                fullMutationMatrix = true
+                outputFormats = ['XML', 'HTML']
+                timestampedReports = false
+            }
+        }
+    }
+}

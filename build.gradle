@@ -1,0 +1,265 @@
+plugins {
+    id 'java'
+    alias(libs.plugins.spring.boot) apply false
+    alias(libs.plugins.spring.dependency.management) apply false
+    alias(libs.plugins.spotless) apply false
+}
+
+allprojects {
+    group = 'com.contentaggregator'
+    version = '1.0.0-SNAPSHOT'
+
+    repositories {
+        mavenCentral()
+        maven { url 'https://repo.spring.io/milestone' }
+        maven { url 'https://repo.spring.io/snapshot' }
+    }
+}
+
+subprojects {
+    apply plugin: 'java'
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+    }
+
+    configurations {
+        compileOnly {
+            extendsFrom annotationProcessor
+        }
+    }
+}
+
+configure(subprojects.findAll {
+    it.name in [
+            'ingestion-service',
+            'core-platform-service'
+    ]
+}) {
+    apply plugin: 'org.springframework.boot'
+    apply plugin: 'io.spring.dependency-management'
+    apply plugin: 'jacoco'
+    apply plugin: 'com.diffplug.spotless'
+    apply plugin: 'pmd'
+
+    ext {
+        tagDatabase = 'database'
+        tagKafka    = 'kafka'
+        tagE2E      = 'e2e'
+    }
+
+    dependencyManagement {
+        imports {
+            mavenBom "org.springframework.boot:spring-boot-dependencies:${libs.versions.spring.boot.get()}"
+            mavenBom "org.springframework.cloud:spring-cloud-dependencies:2024.0.1"
+            mavenBom "org.springframework.ai:spring-ai-bom:${libs.versions.spring.ai.get()}"
+            mavenBom "org.springframework.modulith:spring-modulith-bom:${libs.versions.spring.modulith.get()}"
+            mavenBom "org.testcontainers:testcontainers-bom:${libs.versions.testcontainers.get()}"
+        }
+    }
+
+    configurations {
+        mockitoAgent
+    }
+
+    dependencies {
+        implementation 'org.springframework.boot:spring-boot-starter'
+        implementation 'org.springframework.boot:spring-boot-starter-actuator'
+        implementation 'io.micrometer:micrometer-registry-prometheus'
+
+        annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+        testImplementation 'org.springframework.security:spring-security-test'
+
+        testImplementation platform(libs.testcontainers.bom)
+        testImplementation libs.testcontainers.junit
+        testImplementation libs.testcontainers.postgresql
+        testImplementation libs.testcontainers.kafka
+
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+        mockitoAgent(libs.mockito.core) { transitive = false }
+    }
+
+    def mockitoAgentJvmArg = { "-javaagent:${configurations.mockitoAgent.asPath}" }
+
+    tasks.withType(Test).configureEach {
+        jvmArgs mockitoAgentJvmArg()
+        systemProperty 'testcontainers.reuse.enable', 'true'
+        testLogging {
+            events 'passed', 'skipped', 'failed'
+            exceptionFormat 'full'
+            showExceptions true
+            showCauses true
+            showStackTraces true
+        }
+    }
+
+    pmd {
+        toolVersion = libs.versions.pmd.get()
+        consoleOutput = true
+        incrementalAnalysis = true
+        ruleSets = []
+        ruleSetConfig = resources.text.fromFile(rootProject.file('config/pmd/ruleset.xml'))
+        ignoreFailures = false
+    }
+
+    pmdTest {
+        ruleSetConfig = resources.text.fromFile(rootProject.file('config/pmd/ruleset-test.xml'))
+        enabled = true
+    }
+
+    spotless {
+        java {
+            googleJavaFormat(libs.versions.google.java.format.get())
+                    .formatJavadoc(false)
+
+            formatAnnotations()
+            removeUnusedImports()
+            trimTrailingWhitespace()
+            endWithNewline()
+
+            importOrder('java', 'javax', 'jakarta', 'org', 'com', '')
+        }
+    }
+
+    test {
+        useJUnitPlatform {
+            excludeTags 'slow', 'e2e'
+        }
+        maxParallelForks = Math.max(1, Runtime.runtime.availableProcessors().intdiv(2) as int)
+    }
+
+    tasks.register('unitTest', Test) {
+        useJUnitPlatform {
+            includeTags 'unit', 'fast'
+            excludeTags 'integration', 'slow'
+        }
+        group = 'verification'
+        description = 'Run fast unit tests'
+        maxParallelForks = Runtime.runtime.availableProcessors()
+    }
+
+    tasks.register('integrationTest', Test) {
+        useJUnitPlatform {
+            includeTags 'integration'
+            excludeTags 'e2e'
+        }
+        group = 'verification'
+        description = 'Run integration tests with Testcontainers'
+        maxParallelForks = Math.max(1, Runtime.runtime.availableProcessors().intdiv(2) as int)
+    }
+
+    tasks.register('databaseTest', Test) {
+        useJUnitPlatform { includeTags tagDatabase }
+        group = 'verification'
+        description = 'Run PostgreSQL integration tests'
+        maxParallelForks = Math.max(1, Runtime.runtime.availableProcessors().intdiv(2) as int)
+    }
+
+    tasks.register('kafkaTest', Test) {
+        useJUnitPlatform { includeTags tagKafka }
+        group = 'verification'
+        description = 'Run Kafka integration tests'
+        maxParallelForks = Math.max(1, Runtime.runtime.availableProcessors().intdiv(2) as int)
+    }
+
+    tasks.register('e2eTest', Test) {
+        useJUnitPlatform { includeTags tagE2E }
+        group = 'verification'
+        description = 'Run end-to-end tests'
+        maxParallelForks = 1
+    }
+
+    tasks.register('allTests') {
+        dependsOn tasks.named('unitTest'), tasks.named('integrationTest')
+        group = 'verification'
+        description = 'Run unit + integration tests (no e2e)'
+    }
+
+    jacoco {
+        toolVersion = libs.versions.jacoco.get()
+    }
+
+    jacocoTestReport {
+        dependsOn tasks.named('test'), tasks.named('integrationTest')
+        executionData fileTree(dir: layout.buildDirectory.get(), includes: ['jacoco/test.exec', 'jacoco/integrationTest.exec'])
+        reports {
+            xml.required = true
+            html.required = true
+            csv.required = false
+        }
+        afterEvaluate {
+            classDirectories.setFrom(files(classDirectories.files.collect {
+                fileTree(dir: it, exclude: [
+                        '**/dto/**',
+                        '**/config/**',
+                        '**/domain/**',
+                        '**/*Application*',
+                        '**/exception/**',
+                        '**/mapper/**',
+                        '**/testutil/**'
+                ])
+            }))
+        }
+    }
+
+    jacocoTestCoverageVerification {
+        dependsOn jacocoTestReport
+        executionData fileTree(dir: layout.buildDirectory.get(), includes: ['jacoco/test.exec', 'jacoco/integrationTest.exec'])
+        afterEvaluate {
+            classDirectories.setFrom(files(classDirectories.files.collect {
+                fileTree(dir: it, exclude: [
+                        '**/dto/**',
+                        '**/config/**',
+                        '**/domain/**',
+                        '**/*Application*',
+                        '**/exception/**',
+                        '**/mapper/**',
+                        '**/testutil/**'
+                ])
+            }))
+        }
+        violationRules {
+            rule {
+                limit {
+                    counter = 'INSTRUCTION'
+                    value = 'COVEREDRATIO'
+                    minimum = 0.50
+                }
+            }
+        }
+    }
+
+    test.finalizedBy jacocoTestReport
+
+    bootJar {
+        archiveFileName = "${project.name}.jar"
+    }
+}
+
+tasks.register('runAllUnitTests') {
+    group = 'verification'
+    description = 'Run unit tests in all Spring Boot services'
+    dependsOn subprojects.findAll { it.plugins.hasPlugin('org.springframework.boot') }
+                         .collect { "${it.path}:unitTest" }
+}
+
+tasks.register('runAllIntegrationTests') {
+    group = 'verification'
+    description = 'Run integration tests in all Spring Boot services'
+    dependsOn subprojects.findAll { it.plugins.hasPlugin('org.springframework.boot') }
+                         .collect { "${it.path}:integrationTest" }
+}
+
+tasks.register('generateCoverageReport') {
+    group = 'verification'
+    description = 'Generate coverage reports for all Spring Boot services'
+    dependsOn subprojects.findAll { it.plugins.hasPlugin('org.springframework.boot') }
+                         .collect { "${it.path}:jacocoTestReport" }
+}

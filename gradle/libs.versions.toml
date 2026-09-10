@@ -1,0 +1,95 @@
+[versions]
+
+# Core Platform & Frameworks
+java                          = "21"
+spring-boot                   = "3.4.3"
+spring-dependency-management  = "1.1.7"
+spring-modulith               = "1.3.7"
+spring-ai                     = "1.1.8"
+gradle-foojay                 = "0.8.0"
+
+# Utilities & Domain
+mapstruct                     = "1.5.5.Final"
+jjwt                          = "0.12.3"
+resilience4j                  = "2.2.0"
+dotenv-java                   = "3.0.0"
+springdoc                     = "2.8.6"
+jsoup                         = "1.18.3"
+caffeine                      = "3.1.8"
+
+# Persistence & Storage
+postgresql                    = "42.7.4"
+pgvector                      = "0.1.6"
+
+# Verification & Quality Gates
+testcontainers                = "2.0.5"
+wiremock                      = "3.10.0"
+archunit                      = "1.3.0"
+jqwik                         = "1.9.0"
+pitest                        = "1.17.4"
+pitest-junit5                 = "1.2.1"
+jacoco                        = "0.8.12"
+pmd                           = "7.16.0"
+spotless                      = "8.1.0"
+google-java-format            = "1.22.0"
+
+
+[libraries]
+
+# Spring BOMs
+spring-boot-dependencies      = { module = "org.springframework.boot:spring-boot-dependencies",          version.ref = "spring-boot" }
+spring-ai-bom                 = { module = "org.springframework.ai:spring-ai-bom",                       version.ref = "spring-ai" }
+spring-modulith-bom           = { module = "org.springframework.modulith:spring-modulith-bom",           version.ref = "spring-modulith" }
+
+# Spring AI Modules (Verified Spring AI 1.1.8+ naming)
+spring-ai-openai              = { module = "org.springframework.ai:spring-ai-starter-model-openai" }
+spring-ai-pgvector            = { module = "org.springframework.ai:spring-ai-starter-vector-store-pgvector" }
+
+# Domain & Parsing
+mapstruct                     = { module = "org.mapstruct:mapstruct",                                    version.ref = "mapstruct" }
+mapstruct-processor           = { module = "org.mapstruct:mapstruct-processor",                          version.ref = "mapstruct" }
+jsoup                         = { module = "org.jsoup:jsoup",                                            version.ref = "jsoup" }
+caffeine                      = { module = "com.github.ben-manes.caffeine:caffeine",                     version.ref = "caffeine" }
+
+# Security & Tokens
+jjwt-api                      = { module = "io.jsonwebtoken:jjwt-api",                                   version.ref = "jjwt" }
+jjwt-impl                     = { module = "io.jsonwebtoken:jjwt-impl",                                  version.ref = "jjwt" }
+jjwt-jackson                  = { module = "io.jsonwebtoken:jjwt-jackson",                               version.ref = "jjwt" }
+
+# Resilience & API Docs
+resilience4j-circuitbreaker   = { module = "io.github.resilience4j:resilience4j-circuitbreaker",         version.ref = "resilience4j" }
+resilience4j-spring-boot3     = { module = "io.github.resilience4j:resilience4j-spring-boot3",           version.ref = "resilience4j" }
+dotenv-java                   = { module = "io.github.cdimascio:dotenv-java",                            version.ref = "dotenv-java" }
+springdoc-webmvc-ui           = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui",          version.ref = "springdoc" }
+
+# Database
+postgresql                    = { module = "org.postgresql:postgresql",                                  version.ref = "postgresql" }
+pgvector                      = { module = "com.pgvector:pgvector",                                      version.ref = "pgvector" }
+
+# Testcontainers 2.0.5 BOM & Modules
+testcontainers-bom            = { module = "org.testcontainers:testcontainers-bom",                      version.ref = "testcontainers" }
+testcontainers-junit          = { module = "org.testcontainers:testcontainers-junit-jupiter" }
+testcontainers-postgresql     = { module = "org.testcontainers:testcontainers-postgresql" }
+testcontainers-kafka          = { module = "org.testcontainers:testcontainers-kafka" }
+testcontainers-redpanda       = { module = "org.testcontainers:testcontainers-redpanda" }
+
+# Verification & Architecture Gates
+wiremock                      = { module = "org.wiremock:wiremock-standalone",                           version.ref = "wiremock" }
+mockito-core                  = { module = "org.mockito:mockito-core" }
+archunit                      = { module = "com.tngtech.archunit:archunit-junit5",                       version.ref = "archunit" }
+jqwik                         = { module = "net.jqwik:jqwik",                                            version.ref = "jqwik" }
+
+
+[bundles]
+
+jjwt-runtime                  = ["jjwt-impl", "jjwt-jackson"]
+resilience4j                  = ["resilience4j-circuitbreaker", "resilience4j-spring-boot3"]
+spring-ai                     = ["spring-ai-openai", "spring-ai-pgvector"]
+testing-containers            = ["testcontainers-postgresql", "testcontainers-kafka", "testcontainers-redpanda"]
+
+
+[plugins]
+
+spring-boot                   = { id = "org.springframework.boot",                                      version.ref = "spring-boot" }
+spring-dependency-management  = { id = "io.spring.dependency-management",                               version.ref = "spring-dependency-management" }
+spotless                      = { id = "com.diffplug.spotless",                                         version.ref = "spotless" }

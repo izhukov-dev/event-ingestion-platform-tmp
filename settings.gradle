@@ -1,0 +1,10 @@
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
+}
+
+rootProject.name = 'event-ingestion-platform'
+
+include 'event-contracts'
+include 'test-common'
+include 'ingestion-service'
+include 'core-platform-service'

@@ -1,0 +1,117 @@
+<?xml version="1.0"?>
+<ruleset name="event-ingestion-platform-test"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0
+             https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+
+    <description>
+        Conservative PMD ruleset for test sources (IMP-04).
+
+        Only four categories are active:
+          a) no wildcard imports,
+          b) no Thread.sleep in tests,
+          c) no imports from AssertionsForClassTypes,
+          d) no unused imports.
+
+        No production-only categories (architecture, size, cyclomatic
+        complexity) are active on test sources. Broader rule activation
+        is deferred to follow-up PRs.
+    </description>
+
+    <!-- Generated MapStruct / Querydsl code must not be linted. -->
+    <exclude-pattern>.*/generated/.*</exclude-pattern>
+
+    <!-- (a) Wildcard imports on any declaration.
+             PMD 7.16.0 (pinned via gradle/libs.versions.toml:pmd) does NOT ship
+             a built-in AvoidStarImport rule — the PMD 6 rule was dropped during
+             the PMD 7 import-rule consolidation that produced UnnecessaryImport
+             (PMD 6.34, see https://pmd.github.io/2021/04/24/PMD-6.34.0/). The
+             design's R-02 "fall back to a structural selector" branch applies:
+             we re-implement AvoidStarImport as a one-line XPath rule against
+             the ImportDeclaration AST node. -->
+    <rule name="AvoidStarImport"
+          language="java"
+          message="Wildcard imports are forbidden; import members explicitly."
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+        <description>
+            Flags wildcard imports (e.g. `import foo.bar.*` or
+            `import static foo.bar.*`) on any declaration. Replace with
+            explicit per-member imports so test dependencies on third-party
+            APIs remain transparent.
+        </description>
+        <priority>3</priority>
+        <properties>
+            <property name="xpath">
+                <value>
+<![CDATA[
+//ImportDeclaration[@ImportOnDemand = true()]
+]]>
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- (d) Unused / unnecessary imports.
+             PMD 7 canonical rule is codestyle.xml/UnnecessaryImport (the PMD 6
+             bestpractices.xml/UnusedImports rule was removed and folded into
+             this one alongside UnnecessaryFullyQualifiedName / duplicate-import
+             checks). Pinned PMD version is 7.16.0 (gradle/libs.versions.toml). -->
+    <rule ref="category/java/codestyle.xml/UnnecessaryImport"/>
+
+    <!-- (b) Thread.sleep(...) in tests.
+             Custom XPath rule: there is no shipped PMD rule that matches only
+             Thread.sleep. The selector follows the PMD 7 idiom used by the
+             built-in AvoidUsingNativeCode rule (qualify TypeExpression/ClassType
+             with pmd-java:typeIs(...)) so the rule is robust to AST changes
+             between PMD 7 minor versions. If the local PMD binary rejects the
+             pmd-java:typeIs() function, fall back to a purely structural
+             selector (see commented variant below). -->
+    <rule name="AvoidThreadSleepInTests"
+          language="java"
+          message="Thread.sleep is forbidden in tests; use Awaitility or a TestClock."
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+        <description>
+            Flags any invocation of Thread.sleep(..) in test sources. Replace
+            with Awaitility (for async waits) or a controlled Clock.
+        </description>
+        <priority>3</priority>
+        <properties>
+            <property name="xpath">
+                <value>
+<![CDATA[
+//MethodCall
+  [@MethodName = 'sleep']
+  [TypeExpression/ClassType[pmd-java:typeIs('java.lang.Thread')]]
+]]>
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- (c) Forbid imports from org.assertj.core.api.AssertionsForClassTypes.
+             Custom XPath: matches the exact package and any static member
+             import rooted in it. -->
+    <rule name="AvoidAssertionsForClassTypes"
+          language="java"
+          message="Use org.assertj.core.api.Assertions; AssertionsForClassTypes is a legacy facade."
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+        <description>
+            AssertJ ships two parallel entry points: Assertions (recommended)
+            and AssertionsForClassTypes (legacy). Standardise on Assertions.
+        </description>
+        <priority>3</priority>
+        <properties>
+            <property name="xpath">
+                <value>
+<![CDATA[
+//ImportDeclaration
+  [ starts-with(@ImportedName, 'org.assertj.core.api.AssertionsForClassTypes')
+    or @ImportedName = 'org.assertj.core.api.AssertionsForClassTypes' ]
+]]>
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+</ruleset>

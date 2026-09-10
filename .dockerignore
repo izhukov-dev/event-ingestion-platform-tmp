@@ -1,0 +1,6 @@
+**/.git
+**/.gradle
+**/build/classes
+**/build/reports
+**/build/test-results
+**/build/tmp

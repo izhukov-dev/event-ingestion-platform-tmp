@@ -1,0 +1,28 @@
+initscript {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    dependencies {
+        classpath 'org.openrewrite:plugin:6.29.0'
+    }
+}
+
+gradle.rootProject {
+    apply plugin: org.openrewrite.gradle.RewritePlugin
+
+    dependencies {
+        rewrite 'org.openrewrite.recipe:rewrite-testing-frameworks:2.21.0'
+    }
+
+    rewrite {
+        activeRecipe(
+            'org.openrewrite.java.testing.assertj.JUnitToAssertj',
+            'org.openrewrite.java.testing.junit5.JUnit5BestPractices',
+            'org.openrewrite.java.testing.mockito.MockitoBestPractices'
+        )
+    }
+}
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+}
