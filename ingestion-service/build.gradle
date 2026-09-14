@@ -1,0 +1,30 @@
+plugins {
+    id 'java'
+}
+
+dependencies {
+    implementation project(':event-contracts')
+    testImplementation project(':test-common')
+
+    // Spring Boot Core & Actuator
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+    // Jsoup XML Parser
+    implementation libs.jsoup
+
+    // Resilience4j
+    implementation libs.bundles.resilience4j
+
+    // Kafka Producer & Database (Outbox)
+    implementation 'org.springframework.kafka:spring-kafka'
+    implementation 'org.liquibase:liquibase-core'
+    implementation libs.postgresql
+
+    // Testing
+    testImplementation libs.bundles.testing.containers
+    testImplementation libs.archunit
+    testImplementation libs.wiremock
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
+}
