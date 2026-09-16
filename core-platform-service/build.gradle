@@ -1,0 +1,35 @@
+plugins {
+    id 'java'
+}
+
+dependencies {
+    implementation project(':event-contracts')
+    testImplementation project(':test-common')
+
+    // Spring Boot Web & Actuator
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.kafka:spring-kafka'
+
+    // Spring Modulith
+    implementation platform(libs.spring.modulith.bom)
+    implementation 'org.springframework.modulith:spring-modulith-starter-core'
+    testImplementation 'org.springframework.modulith:spring-modulith-starter-test'
+
+    // Spring AI
+    implementation platform(libs.spring.ai.bom)
+    implementation libs.bundles.spring.ai
+
+    // Database & Caching
+    implementation 'org.liquibase:liquibase-core'
+    implementation libs.postgresql
+    implementation libs.pgvector
+    implementation libs.caffeine
+
+    // Testing & Quality Gates
+    testImplementation libs.bundles.testing.containers
+    testImplementation libs.archunit
+    testImplementation libs.jqwik
+}
