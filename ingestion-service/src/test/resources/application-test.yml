@@ -1,0 +1,6 @@
+ingestion:
+  outbox:
+    poll-interval: 3600000
+  crawler:
+    enabled: false
+    poll-interval: 3600000

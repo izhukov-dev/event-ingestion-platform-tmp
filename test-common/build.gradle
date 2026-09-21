@@ -1,0 +1,17 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api platform(libs.spring.boot.dependencies)
+    api platform(libs.testcontainers.bom)
+    api 'org.springframework.boot:spring-boot-starter-test'
+    api 'org.springframework.boot:spring-boot-testcontainers'
+    api libs.testcontainers.junit
+    api libs.testcontainers.postgresql
+    api libs.testcontainers.kafka
+    api libs.testcontainers.redpanda
+    api libs.wiremock
+    api libs.archunit
+    api libs.jqwik
+}
