@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.UUID;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,12 +13,12 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
-import com.contentaggregator.annotations.DatabaseTest;
+import com.contentaggregator.annotations.KafkaTest;
 import com.contentaggregator.testutil.containers.KafkaContainersConfig;
 import com.contentaggregator.testutil.containers.PostgresContainersConfig;
 
-@DatabaseTest
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@KafkaTest
+@SpringBootTest
 @Import({PostgresContainersConfig.class, KafkaContainersConfig.class})
 @ActiveProfiles("test")
 class OutboxPublisherIntegrationTest {
@@ -25,6 +26,11 @@ class OutboxPublisherIntegrationTest {
   @Autowired private JdbcTemplate jdbcTemplate;
 
   @Autowired private OutboxPublisherScheduler publisherScheduler;
+
+  @BeforeEach
+  void cleanDatabase() {
+    jdbcTemplate.execute("TRUNCATE TABLE outbox_events CASCADE");
+  }
 
   @Test
   @DisplayName(

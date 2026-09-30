@@ -16,15 +16,16 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
-import com.contentaggregator.annotations.IntegrationTest;
+import com.contentaggregator.annotations.KafkaTest;
 import com.contentaggregator.events.ContentDiscoveredEvent;
 import com.contentaggregator.testutil.containers.KafkaContainersConfig;
 import com.contentaggregator.testutil.containers.PostgresContainersConfig;
+import com.contentaggregator.testutil.containers.RedisContainersConfig;
 
-@IntegrationTest
+@KafkaTest
 @SpringBootTest
 @ActiveProfiles("test")
-@Import({PostgresContainersConfig.class, KafkaContainersConfig.class})
+@Import({PostgresContainersConfig.class, KafkaContainersConfig.class, RedisContainersConfig.class})
 class KafkaConsumerIdempotencyIntegrationTest {
 
   @Autowired private KafkaTemplate<String, Object> kafkaTemplate;

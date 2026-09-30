@@ -17,12 +17,14 @@ import org.springframework.test.context.ActiveProfiles;
 import com.contentaggregator.annotations.DatabaseTest;
 import com.contentaggregator.core.content.ContentFeedRepository;
 import com.contentaggregator.core.content.ContentItem;
+import com.contentaggregator.testutil.containers.KafkaContainersConfig;
 import com.contentaggregator.testutil.containers.PostgresContainersConfig;
+import com.contentaggregator.testutil.containers.RedisContainersConfig;
 
 @DatabaseTest
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@Import(PostgresContainersConfig.class)
+@SpringBootTest
 @ActiveProfiles("test")
+@Import({PostgresContainersConfig.class, KafkaContainersConfig.class, RedisContainersConfig.class})
 class FeedRepositoryIntegrationTest {
 
   @Autowired private ContentFeedRepository feedRepository;
