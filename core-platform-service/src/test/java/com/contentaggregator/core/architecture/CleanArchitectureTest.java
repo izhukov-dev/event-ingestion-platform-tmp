@@ -59,4 +59,14 @@ class CleanArchitectureTest {
         .because("Service layer must not depend on web layer")
         .check(coreClasses);
   }
+
+  @Test
+  @DisplayName("Integration tests must never declare @MockBean or @MockitoBean fields")
+  void noMockBeanInIntegrationTests() {
+    JavaClasses testClasses =
+        new ClassFileImporter()
+            .withImportOption(ImportOption.Predefined.ONLY_INCLUDE_TESTS)
+            .importPackages("com.contentaggregator.core");
+    CleanArchitectureRules.NO_MOCKBEAN_IN_INTEGRATION_TESTS.check(testClasses);
+  }
 }

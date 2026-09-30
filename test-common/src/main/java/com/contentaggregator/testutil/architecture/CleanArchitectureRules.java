@@ -1,6 +1,7 @@
 package com.contentaggregator.testutil.architecture;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noFields;
 
 import com.tngtech.archunit.lang.ArchRule;
 
@@ -54,6 +55,27 @@ public final class CleanArchitectureRules {
           .dependOnClassesThat()
           .resideInAnyPackage("com.google.common..", "org.apache.commons..")
           .because("Leverage modern Java 21+ standard library APIs instead of transient helper libraries (Guava, Apache Commons)");
+
+  /**
+   * Integration tests must never declare @MockBean or @MockitoBean fields.
+   * MockBean invalidates the Spring ApplicationContext cache and causes expensive Context Churn.
+   */
+  public static final ArchRule NO_MOCKBEAN_IN_INTEGRATION_TESTS =
+      noFields()
+          .that()
+          .areDeclaredInClassesThat()
+          .areAnnotatedWith("com.contentaggregator.annotations.IntegrationTest")
+          .or()
+          .areDeclaredInClassesThat()
+          .areAnnotatedWith("com.contentaggregator.annotations.DatabaseTest")
+          .or()
+          .areDeclaredInClassesThat()
+          .areAnnotatedWith("com.contentaggregator.annotations.KafkaTest")
+          .should()
+          .beAnnotatedWith("org.springframework.boot.test.mock.mockito.MockBean")
+          .orShould()
+          .beAnnotatedWith("org.springframework.test.context.bean.override.mockito.MockitoBean")
+          .because("@MockBean / @MockitoBean in integration tests invalidates Spring ContextCache and causes Context Churn; use WebMvcTest or pure unit tests instead");
 
   private CleanArchitectureRules() {}
 }
