@@ -16,15 +16,17 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
-import com.contentaggregator.annotations.IntegrationTest;
+import com.contentaggregator.annotations.DatabaseTest;
 import com.contentaggregator.core.content.ContentFeedRepository;
 import com.contentaggregator.core.content.SearchResultItem;
+import com.contentaggregator.testutil.containers.KafkaContainersConfig;
 import com.contentaggregator.testutil.containers.PostgresContainersConfig;
+import com.contentaggregator.testutil.containers.RedisContainersConfig;
 
-@IntegrationTest
+@DatabaseTest
 @SpringBootTest
 @ActiveProfiles("test")
-@Import(PostgresContainersConfig.class)
+@Import({PostgresContainersConfig.class, KafkaContainersConfig.class, RedisContainersConfig.class})
 class HybridSearchIntegrationTest {
 
   @Autowired private ContentFeedRepository feedRepository;
@@ -121,8 +123,8 @@ class HybridSearchIntegrationTest {
       float[] vector) {
     String sql =
         """
-        INSERT INTO content_items (id, source_id, external_id, title, url, content_text, published_at, embedding)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?::halfvec)
+        INSERT INTO content_items (id, source_id, external_id, title, url, content_text, published_at, read, embedding)
+        VALUES (?, ?, ?, ?, ?, ?, ?, true, ?::halfvec)
         """;
     String vectorStr = vector != null ? Arrays.toString(vector) : null;
     jdbcTemplate.update(

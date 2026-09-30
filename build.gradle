@@ -89,7 +89,7 @@ configure(subprojects.findAll {
     def mockitoAgentJvmArg = { "-javaagent:${configurations.mockitoAgent.asPath}" }
 
     tasks.withType(Test).configureEach {
-        jvmArgs mockitoAgentJvmArg()
+        jvmArgs mockitoAgentJvmArg(), '-Djdk.tracePinnedThreads=full'
         systemProperty 'testcontainers.reuse.enable', 'true'
         testLogging {
             events 'passed', 'skipped', 'failed'
@@ -128,6 +128,14 @@ configure(subprojects.findAll {
         }
     }
 
+    tasks.withType(Test).configureEach {
+        testLogging {
+            events "failed", "standardError"
+            exceptionFormat "full"
+            showStandardStreams = true
+        }
+    }
+
     test {
         useJUnitPlatform {
             excludeTags 'slow', 'e2e'
@@ -152,21 +160,21 @@ configure(subprojects.findAll {
         }
         group = 'verification'
         description = 'Run integration tests with Testcontainers'
-        maxParallelForks = Math.max(1, Runtime.runtime.availableProcessors().intdiv(2) as int)
+        maxParallelForks = 1
     }
 
     tasks.register('databaseTest', Test) {
         useJUnitPlatform { includeTags tagDatabase }
         group = 'verification'
         description = 'Run PostgreSQL integration tests'
-        maxParallelForks = Math.max(1, Runtime.runtime.availableProcessors().intdiv(2) as int)
+        maxParallelForks = 1
     }
 
     tasks.register('kafkaTest', Test) {
         useJUnitPlatform { includeTags tagKafka }
         group = 'verification'
         description = 'Run Kafka integration tests'
-        maxParallelForks = Math.max(1, Runtime.runtime.availableProcessors().intdiv(2) as int)
+        maxParallelForks = 1
     }
 
     tasks.register('e2eTest', Test) {
@@ -235,8 +243,6 @@ configure(subprojects.findAll {
             }
         }
     }
-
-    test.finalizedBy jacocoTestReport
 
     bootJar {
         archiveFileName = "${project.name}.jar"

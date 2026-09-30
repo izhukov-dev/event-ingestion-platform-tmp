@@ -1,60 +1,77 @@
 package com.contentaggregator.core.content;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 
-import com.contentaggregator.annotations.UnitTest;
-import com.contentaggregator.testutil.TestTags;
+import com.contentaggregator.annotations.WebMvcUnitTest;
 
-@UnitTest
-@Tag(TestTags.UNIT)
-@Tag(TestTags.FAST)
-@ExtendWith(MockitoExtension.class)
-@DisplayName("FeedController Unit Tests")
+@WebMvcUnitTest
+@WebMvcTest(FeedController.class)
 class FeedControllerTest {
 
-  @Mock private FeedService feedService;
+  @Autowired private MockMvc mockMvc;
 
-  private FeedController feedController;
+  @MockitoBean private FeedService feedService;
 
-  @BeforeEach
-  void setUp() {
-    feedController = new FeedController(feedService);
+  @Test
+  @DisplayName("GET /api/v1/feed with valid userId and limit returns 200 and JSON array")
+  void shouldReturnFeedSuccessfully() throws Exception {
+    UUID userId = UUID.randomUUID();
+    FeedItemResponse item =
+        new FeedItemResponse(
+            UUID.randomUUID(),
+            "source-1",
+            "ext-1",
+            "Clean Architecture Post",
+            "https://example.com/clean-arch",
+            "Summary",
+            LocalDateTime.of(2026, 9, 29, 12, 0));
+
+    given(feedService.getUserFeed(userId, 20)).willReturn(List.of(item));
+
+    mockMvc
+        .perform(
+            get("/api/v1/feed")
+                .param("userId", userId.toString())
+                .param("limit", "20")
+                .accept(MediaType.APPLICATION_JSON))
+        .andExpect(status().isOk())
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$[0].title").value("Clean Architecture Post"))
+        .andExpect(jsonPath("$[0].url").value("https://example.com/clean-arch"));
   }
 
   @Test
-  @DisplayName("getFeed should delegate to FeedService and return FeedItemResponse list")
-  void getFeedDelegatesToFeedService() {
-    UUID userId = UUID.randomUUID();
-    FeedItemResponse response =
-        new FeedItemResponse(
-            UUID.randomUUID(),
-            "src-1",
-            "ext-1",
-            "Clean Architecture Article",
-            "https://example.com/clean-arch",
-            "Summary of article",
-            LocalDateTime.now());
+  @DisplayName("GET /api/v1/feed without required userId returns 400 Bad Request")
+  void shouldReturn400WhenUserIdMissing() throws Exception {
+    mockMvc
+        .perform(get("/api/v1/feed").accept(MediaType.APPLICATION_JSON))
+        .andExpect(status().isBadRequest());
+  }
 
-    when(feedService.getUserFeed(userId, 20)).thenReturn(List.of(response));
-
-    List<FeedItemResponse> result = feedController.getFeed(userId, 20);
-
-    assertThat(result).hasSize(1);
-    assertThat(result.get(0).title()).isEqualTo("Clean Architecture Article");
-    verify(feedService).getUserFeed(userId, 20);
+  @Test
+  @DisplayName("GET /api/v1/feed with malformed UUID returns 400 Bad Request")
+  void shouldReturn400WhenUserIdMalformed() throws Exception {
+    mockMvc
+        .perform(
+            get("/api/v1/feed")
+                .param("userId", "not-a-valid-uuid")
+                .accept(MediaType.APPLICATION_JSON))
+        .andExpect(status().isBadRequest());
   }
 }

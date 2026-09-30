@@ -21,14 +21,14 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
-import com.contentaggregator.annotations.IntegrationTest;
+import com.contentaggregator.annotations.KafkaTest;
 import com.contentaggregator.ingestion.security.SsrfValidator;
 import com.contentaggregator.testutil.containers.KafkaContainersConfig;
 import com.contentaggregator.testutil.containers.PostgresContainersConfig;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 
-@IntegrationTest
+@KafkaTest
 @SpringBootTest
 @ActiveProfiles("test")
 @Import({

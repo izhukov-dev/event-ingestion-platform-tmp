@@ -16,14 +16,14 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
-import com.contentaggregator.annotations.IntegrationTest;
+import com.contentaggregator.annotations.DatabaseTest;
 import com.contentaggregator.core.content.FeedItemResponse;
 import com.contentaggregator.testutil.containers.KafkaContainersConfig;
 import com.contentaggregator.testutil.containers.PostgresContainersConfig;
 import com.contentaggregator.testutil.containers.RedisContainersConfig;
 import com.fasterxml.jackson.core.type.TypeReference;
 
-@IntegrationTest
+@DatabaseTest
 @SpringBootTest
 @ActiveProfiles("test")
 @Import({PostgresContainersConfig.class, KafkaContainersConfig.class, RedisContainersConfig.class})

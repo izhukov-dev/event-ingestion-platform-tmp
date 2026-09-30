@@ -13,12 +13,14 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 import com.contentaggregator.annotations.DatabaseTest;
+import com.contentaggregator.testutil.containers.KafkaContainersConfig;
 import com.contentaggregator.testutil.containers.PostgresContainersConfig;
+import com.contentaggregator.testutil.containers.RedisContainersConfig;
 
 @DatabaseTest
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@Import(PostgresContainersConfig.class)
+@SpringBootTest
 @ActiveProfiles("test")
+@Import({PostgresContainersConfig.class, KafkaContainersConfig.class, RedisContainersConfig.class})
 class DatabaseMigrationIntegrationTest {
 
   @Autowired private JdbcTemplate jdbcTemplate;

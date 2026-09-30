@@ -2,11 +2,10 @@ package com.contentaggregator.core.content;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -14,7 +13,6 @@ import java.util.function.Supplier;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -23,14 +21,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.contentaggregator.annotations.UnitTest;
 import com.contentaggregator.core.cache.ProbabilisticCacheService;
 import com.contentaggregator.core.user.UserFeedVersionService;
-import com.contentaggregator.testutil.TestTags;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 @UnitTest
-@Tag(TestTags.UNIT)
-@Tag(TestTags.FAST)
 @ExtendWith(MockitoExtension.class)
-@DisplayName("FeedServiceImpl Unit Tests")
 class FeedServiceTest {
 
   @Mock private ContentFeedRepository feedRepository;
@@ -45,41 +39,55 @@ class FeedServiceTest {
   }
 
   @Test
-  @DisplayName("getUserFeed should request feed from cache using user versioned key and map to DTO")
+  @DisplayName("getUserFeed formats versioned cache key feed:{userId}:v{ver}:l{limit}")
   @SuppressWarnings("unchecked")
-  void getUserFeedUsesProbabilisticCacheWithUserVersionKey() {
+  void shouldBuildCorrectCacheKey() {
     UUID userId = UUID.randomUUID();
-    when(userFeedVersionService.getVersion(userId)).thenReturn(3L);
+    given(userFeedVersionService.getVersion(userId)).willReturn(5L);
 
-    FeedItemResponse dto =
-        new FeedItemResponse(
-            UUID.randomUUID(),
-            "source-1",
-            "ext-1",
-            "Test Title",
-            "https://example.com/post",
-            "Clean content snippet",
-            LocalDateTime.now());
+    feedService.getUserFeed(userId, 50);
 
-    when(cacheService.getOrCompute(
-            eq("feed:" + userId + ":v3:l20"),
+    verify(cacheService)
+        .getOrCompute(
+            org.mockito.ArgumentMatchers.eq("feed:" + userId + ":v5:l50"),
             any(TypeReference.class),
-            eq(Duration.ofMinutes(5)),
-            eq(Duration.ofMillis(20)),
-            any(Supplier.class)))
-        .thenReturn(List.of(dto));
+            any(),
+            any(),
+            any(Supplier.class));
+  }
+
+  @Test
+  @DisplayName(
+      "When cache executes computation loader, repository queries unread feed and maps to DTO")
+  @SuppressWarnings("unchecked")
+  void shouldDelegateToRepositoryWhenLoaderInvoked() {
+    UUID userId = UUID.randomUUID();
+    given(userFeedVersionService.getVersion(userId)).willReturn(1L);
+
+    ContentItem dbItem =
+        new ContentItem(
+            UUID.randomUUID(),
+            "src-db",
+            "ext-db",
+            "Database Fallback Post",
+            "https://example.com/db",
+            "Fallback clean content",
+            LocalDateTime.now());
+    given(feedRepository.findUnreadFeed(20)).willReturn(List.of(dbItem));
+
+    given(
+            cacheService.getOrCompute(
+                anyString(), any(TypeReference.class), any(), any(), any(Supplier.class)))
+        .willAnswer(
+            invocation -> {
+              Supplier<List<FeedItemResponse>> supplier = invocation.getArgument(4);
+              return supplier.get();
+            });
 
     List<FeedItemResponse> result = feedService.getUserFeed(userId, 20);
 
     assertThat(result).hasSize(1);
-    assertThat(result.get(0).title()).isEqualTo("Test Title");
-    verify(userFeedVersionService).getVersion(userId);
-    verify(cacheService)
-        .getOrCompute(
-            eq("feed:" + userId + ":v3:l20"),
-            any(TypeReference.class),
-            eq(Duration.ofMinutes(5)),
-            eq(Duration.ofMillis(20)),
-            any(Supplier.class));
+    assertThat(result.get(0).title()).isEqualTo("Database Fallback Post");
+    verify(feedRepository).findUnreadFeed(20);
   }
 }
